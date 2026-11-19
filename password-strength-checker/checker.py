@@ -1,6 +1,9 @@
 import getpass
 from pathlib import Path
 
+MIN_LENGTH = 15  
+MAX_SCORE = 4
+
 
 def load_common_passwords(filename="common.txt"):
     path = Path(__file__).parent / filename
@@ -16,49 +19,31 @@ COMMON_PASSWORDS = load_common_passwords()
 
 
 def check_password(password):
+    """Return (score, rating, tips) for a password."""
     if password.lower() in COMMON_PASSWORDS:
-        return 0, ["This is a very common password."]
+        return 0, "Blocked", ["This is on the common-password list. Choose a different one."]
 
-    score = 0
+    length = len(password)
     tips = []
 
-    if len(password) >= 12:
-        score += 2
-    elif len(password) >= 8:
-        score += 1
-        tips.append("Use 12 or more characters.")
+    if length < 8:
+        score, rating = 1, "Weak"
+        tips.append("Too short. Use at least 15 characters.")
+    elif length < MIN_LENGTH:
+        score, rating = 2, "Below NIST minimum"
+        tips.append("Use at least 15 characters if this is your only login factor.")
+    elif length < 20:
+        score, rating = 3, "Meets NIST minimum"
+        tips.append("Longer is better. A passphrase of several random words works well.")
     else:
-        tips.append("Too short. Use at least 12 characters.")
+        score, rating = 4, "Strong"
 
-    if any(c.islower() for c in password) and any(c.isupper() for c in password):
-        score += 1
-    else:
-        tips.append("Mix uppercase and lowercase letters.")
-
-    if any(c.isdigit() for c in password):
-        score += 1
-    else:
-        tips.append("Add a number.")
-
-    if any(not c.isalnum() for c in password):
-        score += 1
-    else:
-        tips.append("Add a symbol.")
-
-    return score, tips
-
-
-def rate(score):
-    if score <= 1:
-        return "Weak"
-    if score <= 3:
-        return "Medium"
-    return "Strong"
+    return score, rating, tips
 
 
 if __name__ == "__main__":
     pw = getpass.getpass("Enter a password to check: ")
-    score, tips = check_password(pw)
-    print(f"Score: {score}/5 ({rate(score)})")
+    score, rating, tips = check_password(pw)
+    print(f"Score: {score}/{MAX_SCORE} ({rating})")
     for tip in tips:
         print(f"- {tip}")
